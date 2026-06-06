@@ -11,6 +11,7 @@ from langgraph.graph import END, START, StateGraph
 from openai import OpenAI
 
 from argus.config import ArgusConfig, resolve_api_key
+from argus.skills import Skill
 from argus.tools import build_tool_registry
 from argus.tools import normalize_entity as normalize_entity_tool
 from argus.tools.base import ToolResult
@@ -23,6 +24,7 @@ class GraphState(TypedDict):
     notes: str
     next_action: str
     tool_input: str
+    skill_name: str
     tool_results: list[ToolResult]
     steps_remaining: int
     report: str
@@ -199,7 +201,18 @@ def _fallback_tool_selection(
     return "report", ""
 
 
-def start(state: GraphState, max_steps: int) -> GraphState:
+def _skill_prompt(skill: Skill | None) -> str:
+    if skill is None:
+        return ""
+    return (
+        f"Selected skill: {skill.name}\n"
+        f"Skill description: {skill.description}\n"
+        "Skill markdown:\n"
+        f"{skill.body}"
+    )
+
+
+def start(state: GraphState, max_steps: int, skill_name: str) -> GraphState:
     return {
         "raw_input": state["raw_input"],
         "entity": state["entity"],
@@ -207,18 +220,21 @@ def start(state: GraphState, max_steps: int) -> GraphState:
         "notes": "",
         "next_action": "",
         "tool_input": "",
+        "skill_name": skill_name,
         "tool_results": [],
         "steps_remaining": max_steps,
         "report": "",
     }
 
 
-def build_graph(config: ArgusConfig):
+def build_graph(config: ArgusConfig, skill: Skill | None = None):
     client, model, temperature = _make_client(config)
     tool_registry = build_tool_registry(config)
     max_steps = config["agent"]["max_steps"]
     enabled_tool_names = tool_registry.available_tool_names()
     enabled_tool_descriptions = tool_registry.available_tool_descriptions()
+    skill_name = skill.name if skill is not None else "none"
+    skill_context = _skill_prompt(skill)
 
     def normalize_entity(state: GraphState) -> GraphState:
         normalized = normalize_entity_tool(state["raw_input"])
@@ -229,6 +245,7 @@ def build_graph(config: ArgusConfig):
             "notes": "",
             "next_action": "",
             "tool_input": "",
+            "skill_name": skill_name,
             "tool_results": [],
             "steps_remaining": max_steps,
             "report": "",
@@ -260,6 +277,7 @@ def build_graph(config: ArgusConfig):
                             "next_action must be exactly one enabled tool name or report.\n"
                             "If next_action is a tool, tool_input must be a string to pass to that tool.\n"
                             "If next_action is report, tool_input may be empty.\n"
+                            f"{skill_context}\n"
                             "Enabled tools:\n"
                             f"{enabled_tool_prompt or '- None'}"
                         ),
@@ -271,6 +289,7 @@ def build_graph(config: ArgusConfig):
                             f"Normalized entity: `{state['entity']}`\n"
                             f"Entity type: `{state['entity_type']}`\n"
                             f"Steps remaining: {state['steps_remaining']}\n"
+                            f"Selected skill: `{state['skill_name']}`\n"
                             "Enabled tools:\n"
                             f"{enabled_tool_prompt or '- None'}\n"
                             "Previous tool results:\n"
@@ -317,6 +336,7 @@ def build_graph(config: ArgusConfig):
             "notes": notes.strip(),
             "next_action": next_action,
             "tool_input": tool_input,
+            "skill_name": state["skill_name"],
             "tool_results": state["tool_results"],
             "steps_remaining": state["steps_remaining"],
             "report": "",
@@ -380,6 +400,7 @@ def build_graph(config: ArgusConfig):
             "notes": notes,
             "next_action": next_action,
             "tool_input": tool_input,
+            "skill_name": state["skill_name"],
             "tool_results": state["tool_results"],
             "steps_remaining": state["steps_remaining"],
             "report": state["report"],
@@ -396,6 +417,7 @@ def build_graph(config: ArgusConfig):
             "notes": state["notes"],
             "next_action": state["next_action"],
             "tool_input": state["tool_input"],
+            "skill_name": state["skill_name"],
             "tool_results": tool_results,
             "steps_remaining": max(state["steps_remaining"] - 1, 0),
             "report": "",
@@ -407,6 +429,7 @@ def build_graph(config: ArgusConfig):
             f"- Raw input: `{state['raw_input']}`\n"
             f"- Normalized entity: `{state['entity']}`\n"
             f"- Entity type: `{state['entity_type']}`\n"
+            f"- Selected skill: `{state['skill_name']}`\n"
             f"- Notes: {state['notes']}\n"
             f"- Selected next action: `{state['next_action']}`\n"
             f"- Selected tool input: `{state['tool_input']}`\n"
@@ -420,13 +443,14 @@ def build_graph(config: ArgusConfig):
             "notes": state["notes"],
             "next_action": state["next_action"],
             "tool_input": state["tool_input"],
+            "skill_name": state["skill_name"],
             "tool_results": state["tool_results"],
             "steps_remaining": state["steps_remaining"],
             "report": markdown_report,
         }
 
     graph = StateGraph(GraphState)
-    graph.add_node("start", lambda state: start(state, max_steps))
+    graph.add_node("start", lambda state: start(state, max_steps, skill_name))
     graph.add_node("normalize_entity", normalize_entity)
     graph.add_node("planner", planner)
     graph.add_node("route", route)
