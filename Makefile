@@ -12,3 +12,6 @@ fix:
 
 pre-commit:
 	uv run pre-commit run --all-files
+
+graph:
+	uv run python scripts/draw_graph.py
