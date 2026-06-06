@@ -96,3 +96,27 @@
 ## Task 19
 
 - [x] Let the planner choose a specific tool input
+
+## Task 20
+
+- [x] Add user-editable skills support
+
+## Task 21
+
+- [x] Add a no-skill option to interactive selection
+
+## Task 22
+
+- [x] Handle Ctrl+C gracefully in the CLI
+
+## Task 23
+
+- [x] Simplify CLI startup with optional skill selection
+
+## Task 24
+
+- [x] Refactor CLI startup into small modules
+
+## Task 23
+
+- [x] Simplify CLI startup with optional skill selection
