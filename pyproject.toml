@@ -1,0 +1,24 @@
+[project]
+name = "argus"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Eyewan", email = "eyewan@tinyscope.ru" }
+]
+requires-python = ">=3.14"
+dependencies = [
+    "langgraph>=1.2.4",
+]
+
+[project.scripts]
+argus = "argus:main"
+
+[build-system]
+requires = ["uv_build>=0.11.16,<0.12.0"]
+build-backend = "uv_build"
+
+[tool.uv.workspace]
+members = [
+    "argus",
+]
