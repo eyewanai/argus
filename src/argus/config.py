@@ -74,7 +74,10 @@ DEFAULT_CONFIG: ArgusConfig = {
     "tools": {
         "local": {
             "enabled": True,
-            "include": ["dns_lookup"],
+            "include": [
+                "dns_a_lookup",
+                "registration_lookup",
+            ],
         },
         "mcp": {
             "enabled": False,
