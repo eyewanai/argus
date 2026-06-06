@@ -8,10 +8,13 @@ authors = [
 ]
 requires-python = ">=3.14"
 dependencies = [
+    "dnspython>=2.8.0",
     "langgraph>=1.2.4",
     "openai>=2.41.0",
+    "python-whois>=0.9.6",
     "rich>=15.0.0",
     "ruff>=0.15.16",
+    "whoisit>=4.0.4",
 ]
 
 [project.scripts]
