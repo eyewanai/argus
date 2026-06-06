@@ -61,8 +61,38 @@
 
 - [x] Add Ruff and project quality tooling
 
+## Task 13
+
+- [x] Clean up interactive CLI header
+
+## Task 14
+
+- [x] Split DNS capabilities into separate tools
+- [x] Make DNS tools configurable through the registry
+
+## Task 15
+
+- [x] Add LangGraph visualization support
+
+## Task 16
+
+- [x] Make runtime graph visualization use real config and tool registry
+
 ## Next
 
 - [ ] Add domain investigation tools
 - [ ] Add structured report output
 - [ ] Add tests for package import and CLI entry points
+
+## Task 17
+
+- [x] Add MX and SOA DNS tools
+- [x] Expose enabled tools to the planner
+
+## Task 18
+
+- [x] Add registration lookup with WHOIS and RDAP fallback
+
+## Task 19
+
+- [x] Let the planner choose a specific tool input
