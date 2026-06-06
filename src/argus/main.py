@@ -18,9 +18,10 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def prompt_for_entity() -> str:
-    print("Argus")
-    print("Enter indicator to investigate:")
+def read_indicator() -> str:
+    if sys.stdin.isatty():
+        sys.stdout.write("Indicator to investigate: ")
+        sys.stdout.flush()
     entity = sys.stdin.readline().strip()
     if not entity:
         print("No indicator provided. Exiting.")
@@ -34,10 +35,27 @@ def _print_indented(console: Console, text: str, indent: str = "  ") -> None:
         console.print(f"{indent}{line}")
 
 
+def _tool_label(tool_name: str) -> str:
+    labels = {
+        "dns_a_lookup": "DNS A Lookup",
+        "dns_mx_lookup": "DNS MX Lookup",
+        "dns_soa_lookup": "DNS SOA Lookup",
+        "dns_txt_lookup": "DNS TXT Lookup",
+        "registration_lookup": "Registration Lookup",
+    }
+    return labels.get(tool_name, tool_name)
+
+
 def main() -> None:
     console = Console()
     args = parse_args()
-    raw_input = args.entity if args.entity else prompt_for_entity()
+    console.print("Argus")
+    if args.entity:
+        raw_input = args.entity
+        console.print()
+    else:
+        raw_input = read_indicator()
+        console.print()
     config = load_config()
     graph = build_graph(config)
     initial_state = {
@@ -46,11 +64,12 @@ def main() -> None:
         "entity_type": "",
         "notes": "",
         "next_action": "",
+        "tool_input": "",
         "tool_results": [],
+        "steps_remaining": 0,
         "report": "",
     }
 
-    console.print("Argus\n")
     final_state = initial_state
     for update in graph.stream(initial_state, stream_mode="updates"):
         node_name, state = next(iter(update.items()))
@@ -66,10 +85,12 @@ def main() -> None:
         elif node_name == "planner":
             console.print("▶ Planner")
             console.print(f"  Action selected: {state['next_action']}")
+            console.print(f"  Tool input: {state['tool_input']}")
+            console.print(f"  Steps remaining: {state['steps_remaining']}")
             if state["notes"]:
                 console.print(f"  Notes: {state['notes']}")
         elif node_name == "tool_executor":
-            console.print("\n▶ Tool Executor")
+            console.print(f"\n▶ {_tool_label(state['next_action'])}")
             result = state["tool_results"][-1] if state["tool_results"] else None
             if result is not None:
                 console.print(f"  Tool: {result['tool_name']}")
@@ -83,7 +104,6 @@ def main() -> None:
             console.print("\n▶ Report")
             console.print("\n✓ Investigation complete")
 
-    console.print()
     console.print(Markdown(final_state["report"]))
 
 
