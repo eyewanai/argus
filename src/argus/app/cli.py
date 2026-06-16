@@ -7,9 +7,10 @@ import sys
 
 from rich.console import Console
 
-from argus.runner import run_investigation
-from argus.skills import Skill, load_skills
-from argus.trace import render_final_report
+from argus.app.runner import run_investigation
+from argus.core.trace import render_final_report
+from argus.skills.loader import load_skills
+from argus.skills.models import Skill
 
 
 def parse_args() -> argparse.Namespace:
@@ -68,8 +69,12 @@ def run_cli() -> None:
         raw_input = read_indicator()
         console.print()
 
-    final_state = run_investigation(console, raw_input, selected_skill)
-    render_final_report(console, final_state)
+    result = run_investigation(console, raw_input, selected_skill)
+    render_final_report(console, result.final_state)
+    if result.artifact_paths:
+        console.print("\nArtifacts written:")
+        for path in result.artifact_paths:
+            console.print(f"  {path}")
 
 
 __all__ = [
