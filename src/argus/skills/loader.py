@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+from argus.skills.models import Skill
 
 SKILLS_ROOT = Path.home() / ".config" / "argus" / "skills"
 DEFAULT_SKILL_NAME = "domain-investigation"
@@ -35,15 +36,6 @@ entity_types:
 - Stop when the core objectives are satisfied.
 - If evidence is insufficient, say so clearly.
 """
-
-
-@dataclass(frozen=True, slots=True)
-class Skill:
-    name: str
-    description: str
-    entity_types: tuple[str, ...]
-    body: str
-    path: Path
 
 
 def skills_root() -> Path:
@@ -162,3 +154,12 @@ def _parse_frontmatter_lines(lines: list[str]) -> dict[str, Any]:
             metadata[key] = value
             current_key = None
     return metadata
+
+
+__all__ = [
+    "ensure_default_skill",
+    "ensure_skills_root",
+    "load_skills",
+    "select_default_skill",
+    "skills_root",
+]

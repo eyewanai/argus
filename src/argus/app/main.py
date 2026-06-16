@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from argus.cli import run_cli
+from argus.app.cli import run_cli
 
 
 def main() -> None:

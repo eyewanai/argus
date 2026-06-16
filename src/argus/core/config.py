@@ -50,11 +50,26 @@ class ToolsConfig(TypedDict):
     mcp: MCPToolsConfig
 
 
+class CacheConfig(TypedDict):
+    enabled: bool
+    ttl_seconds: int
+    path: str
+    cache_errors: bool
+
+
+class OutputConfig(TypedDict):
+    dir: str
+    write_by_default: bool
+    formats: list[str]
+
+
 class ArgusConfig(TypedDict):
     default_provider: str
     providers: dict[str, OpenAICompatibleProviderConfig]
     tools: ToolsConfig
     agent: AgentConfig
+    cache: CacheConfig
+    output: OutputConfig
 
 
 CONFIG_PATH = Path.home() / ".config" / "argus" / "config.json"
@@ -76,7 +91,10 @@ DEFAULT_CONFIG: ArgusConfig = {
             "enabled": True,
             "include": [
                 "dns_a_lookup",
+                "dns_ns_lookup",
                 "registration_lookup",
+                "tls_certificate_lookup",
+                "reverse_dns_lookup",
             ],
         },
         "mcp": {
@@ -87,6 +105,23 @@ DEFAULT_CONFIG: ArgusConfig = {
     "agent": {
         "max_steps": 8,
         "temperature": 0.2,
+    },
+    "cache": {
+        "enabled": False,
+        "ttl_seconds": 3600,
+        "path": "~/.cache/argus/tool_cache.sqlite",
+        "cache_errors": False,
+    },
+    "output": {
+        "dir": "/tmp/argus",
+        "write_by_default": True,
+        "formats": [
+            "report.md",
+            "timeline.md",
+            "graph.mmd",
+            "snapshots.json",
+            "state.json",
+        ],
     },
 }
 
@@ -132,6 +167,8 @@ def _validate_config(raw: Any) -> ArgusConfig:
     providers = raw.get("providers")
     tools = raw.get("tools")
     agent = raw.get("agent")
+    cache = raw.get("cache")
+    output = raw.get("output")
 
     if not isinstance(default_provider, str):
         raise TypeError("Argus config requires a string default_provider.")
@@ -141,6 +178,10 @@ def _validate_config(raw: Any) -> ArgusConfig:
         raise TypeError("Argus config requires a tools object.")
     if not isinstance(agent, dict):
         raise TypeError("Argus config requires an agent object.")
+    if cache is not None and not isinstance(cache, dict):
+        raise TypeError("Argus config requires cache to be an object when provided.")
+    if output is not None and not isinstance(output, dict):
+        raise TypeError("Argus config requires output to be an object when provided.")
 
     validated_providers: dict[str, OpenAICompatibleProviderConfig] = {}
     for name, provider in providers.items():
@@ -152,6 +193,8 @@ def _validate_config(raw: Any) -> ArgusConfig:
         raise ValueError(f"Default provider '{default_provider}' is not defined.")
 
     validated_tools = _validate_tools(tools)
+    validated_cache = _validate_cache(cache or DEFAULT_CONFIG["cache"])
+    validated_output = _validate_output(output or DEFAULT_CONFIG["output"])
 
     max_steps = agent.get("max_steps")
     temperature = agent.get("temperature")
@@ -168,6 +211,8 @@ def _validate_config(raw: Any) -> ArgusConfig:
             "max_steps": max_steps,
             "temperature": float(temperature),
         },
+        "cache": validated_cache,
+        "output": validated_output,
     }
 
 
@@ -202,6 +247,50 @@ def _validate_tools(raw: dict[str, Any]) -> ToolsConfig:
             "enabled": mcp_enabled,
             "servers": servers,
         },
+    }
+
+
+def _validate_cache(raw: dict[str, Any]) -> CacheConfig:
+    enabled = raw.get("enabled")
+    ttl_seconds = raw.get("ttl_seconds")
+    path = raw.get("path")
+    cache_errors = raw.get("cache_errors")
+
+    if not isinstance(enabled, bool):
+        raise TypeError("Argus config requires cache.enabled to be a boolean.")
+    if not isinstance(ttl_seconds, int):
+        raise TypeError("Argus config requires cache.ttl_seconds to be an integer.")
+    if ttl_seconds < 0:
+        raise ValueError("Argus config requires cache.ttl_seconds to be >= 0.")
+    if not isinstance(path, str):
+        raise TypeError("Argus config requires cache.path to be a string.")
+    if not isinstance(cache_errors, bool):
+        raise TypeError("Argus config requires cache.cache_errors to be a boolean.")
+
+    return {
+        "enabled": enabled,
+        "ttl_seconds": ttl_seconds,
+        "path": path,
+        "cache_errors": cache_errors,
+    }
+
+
+def _validate_output(raw: dict[str, Any]) -> OutputConfig:
+    dir_path = raw.get("dir")
+    write_by_default = raw.get("write_by_default")
+    formats = raw.get("formats")
+
+    if not isinstance(dir_path, str):
+        raise TypeError("Argus config requires output.dir to be a string.")
+    if not isinstance(write_by_default, bool):
+        raise TypeError("Argus config requires output.write_by_default to be a boolean.")
+    if not isinstance(formats, list) or any(not isinstance(item, str) for item in formats):
+        raise TypeError("Argus config requires output.formats to be a list of strings.")
+
+    return {
+        "dir": dir_path,
+        "write_by_default": write_by_default,
+        "formats": formats,
     }
 
 
