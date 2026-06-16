@@ -11,6 +11,7 @@ dependencies = [
     "dnspython>=2.8.0",
     "langgraph>=1.2.4",
     "openai>=2.41.0",
+    "pydantic>=2.11.7",
     "python-whois>=0.9.6",
     "rich>=15.0.0",
     "ruff>=0.15.16",
@@ -18,7 +19,7 @@ dependencies = [
 ]
 
 [project.scripts]
-argus = "argus.main:main"
+argus = "argus.app.main:main"
 
 [build-system]
 requires = ["uv_build>=0.11.16,<0.12.0"]

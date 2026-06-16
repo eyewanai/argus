@@ -1,5 +1,5 @@
 run:
-	uv run python -m argus.main
+	uv run argus
 
 fmt:
 	uv run ruff format .
